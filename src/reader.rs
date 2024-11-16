@@ -1,3 +1,4 @@
+// use std::fmt::format;
 use std::io::BufRead;
 use std::fs;
 use std::io;
@@ -15,17 +16,18 @@ pub struct FileReader {
 }
 
 impl FileReader {
-    pub fn new(path: &std::path::PathBuf) -> Self {
-        // let path_str = path.to_string_lossy();
+    pub fn new(path: &std::path::PathBuf) -> Result<Self, String> {
         let file = match fs::File::open(&path) {
             Ok(file) => file,
-            Err(err) => panic!("Cannot open file: {err:?}"),
+            Err(err) => return Err(format!("Cannot open file {path:?}: {err:?}")),
         };
         let buffer_reader = io::BufReader::new(file);
-        return FileReader{
-            buffer_reader: buffer_reader,
-            line_counter: 0,
-        };
+        return Ok(
+            FileReader{
+                buffer_reader: buffer_reader,
+                line_counter: 0,
+            }
+        );
     }
 
     pub fn read_next(&mut self, pattern: &regex::Regex) -> Result<Option<ReadResult>, String> {
