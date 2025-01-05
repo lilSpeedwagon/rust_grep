@@ -1,8 +1,9 @@
-// use std::fmt::format;
 use std::io::BufRead;
 use std::fs;
 use std::io;
 use regex;
+
+use crate::utils;
 
 
 pub struct ReadResult {
@@ -30,24 +31,24 @@ impl FileReader {
         );
     }
 
-    pub fn read_next(&mut self, pattern: &regex::Regex) -> Result<Option<ReadResult>, String> {
+    pub fn read_next(&mut self, pattern: &regex::Regex) -> utils::types::OptionalResult<ReadResult, String> {
         let mut buffer = String::new();
         loop {
             self.line_counter += 1;
             let line_len = match self.buffer_reader.read_line(&mut buffer) {
                 Ok(line) => line,
                 Err(err) => {
-                    return Err(format!("Cannot read file: {err}"));
+                    return utils::types::OptionalResult::Err(format!("Cannot read file: {err}"));
                 }
             };
 
             if line_len == 0 {
-                return Ok(None);
+                return utils::types::OptionalResult::None;
             }
 
             if pattern.is_match(&buffer) {
                 let line = String::from(buffer.strip_suffix("\n").unwrap_or(&buffer));
-                return Ok(Some(ReadResult{line_content: line, line_number: self.line_counter}));
+                return utils::types::OptionalResult::Ok(ReadResult{line_content: line, line_number: self.line_counter});
             }
 
             buffer.clear();

@@ -9,6 +9,7 @@ use log::{debug, info};
 use crate::reader::FileReader;
 
 pub mod reader;
+pub mod utils;
 
 
 #[derive(Parser)]
@@ -30,20 +31,16 @@ fn read_file(file_path: PathBuf, pattern: &Regex) {
             loop {
                 let next_result = reader.read_next(&pattern);
                 match next_result {
-                    Ok(opt_result) => {
-                        match opt_result {
-                            Some(result) => {
-                                let line = result.line_content;
-                                let line_number = result.line_number;
-                                info!("{path_str} ({line_number}): {line}");
-                            },
-                            None => {
-                                break;
-                            }
-                        }
+                    utils::types::OptionalResult::Ok(result) => {
+                        let line = result.line_content;
+                        let line_number = result.line_number;
+                        info!("{path_str} ({line_number}): {line}");
                     },
-                    Err(err) => {
+                    utils::types::OptionalResult::Err(err) => {
                         debug!("Warning! Cannot read file {path_str}: {err}");
+                        break;
+                    },
+                    utils::types::OptionalResult::None => {
                         break;
                     }
                 }
