@@ -1,6 +1,7 @@
 use std::io::BufRead;
 use std::fs;
 use std::io;
+use std::path;
 use regex;
 
 use crate::utils;
@@ -13,7 +14,7 @@ pub struct FileReader {
 }
 
 impl FileReader {
-    pub fn new(path: &std::path::PathBuf) -> Result<Self, String> {
+    pub fn new(path: &path::Path) -> Result<Self, String> {
         let file = match fs::File::open(&path) {
             Ok(file) => file,
             Err(err) => return Err(format!("Cannot open file {path:?}: {err:?}")),

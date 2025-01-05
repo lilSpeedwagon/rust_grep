@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path;
 
 use clap::Parser;
 use regex::Regex;
@@ -22,7 +22,7 @@ struct CliArgs {
     verbose: bool,
 }
 
-fn read_file(file_path: PathBuf, pattern: &Regex) {
+fn read_file(file_path: &path::Path, pattern: &Regex) {
     let path_str = file_path.to_string_lossy();
     let open_file_reader_result = reader::file_reader::FileReader::new(&file_path);
     match open_file_reader_result {
@@ -77,7 +77,7 @@ fn main() {
                     continue;
                 }
 
-                read_file(file_path, &args.pattern);
+                read_file(file_path.as_path(), &args.pattern);
             }
         },
         Err(err) => panic!("Invalid glob: {err}")
