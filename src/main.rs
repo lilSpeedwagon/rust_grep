@@ -6,11 +6,10 @@ use glob::glob;
 use flexi_logger::{Logger, WriteMode};
 use log::{debug, info};
 
-use crate::reader::FileReader;
-
 pub mod reader;
 pub mod utils;
 
+use reader::base::TextReader;
 
 #[derive(Parser)]
 struct CliArgs {
@@ -25,7 +24,7 @@ struct CliArgs {
 
 fn read_file(file_path: PathBuf, pattern: &Regex) {
     let path_str = file_path.to_string_lossy();
-    let open_file_reader_result = FileReader::new(&file_path);
+    let open_file_reader_result = reader::file_reader::FileReader::new(&file_path);
     match open_file_reader_result {
         Ok(mut reader) => {
             loop {

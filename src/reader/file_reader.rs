@@ -4,12 +4,8 @@ use std::io;
 use regex;
 
 use crate::utils;
+use crate::reader::base::{TextReader, ReadResult};
 
-
-pub struct ReadResult {
-    pub line_content: String,
-    pub line_number: u32,
-}
 
 pub struct FileReader {
     buffer_reader: io::BufReader<fs::File>,
@@ -30,8 +26,10 @@ impl FileReader {
             }
         );
     }
+}
 
-    pub fn read_next(&mut self, pattern: &regex::Regex) -> utils::types::OptionalResult<ReadResult, String> {
+impl TextReader for FileReader {
+    fn read_next(&mut self, pattern: &regex::Regex) -> utils::types::OptionalResult<ReadResult, String> {
         let mut buffer = String::new();
         loop {
             self.line_counter += 1;
