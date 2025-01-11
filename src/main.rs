@@ -1,8 +1,10 @@
+use std::io;
 use std::path;
+use std::error::Error;
 
 use clap::Parser;
 use regex::Regex;
-use glob::glob;
+use glob;
 use flexi_logger::{Logger, WriteMode};
 use log::{debug, info};
 
@@ -20,9 +22,12 @@ struct CliArgs {
     /// Verbose log level flag.
     #[arg(short, long, default_value_t = false)]
     verbose: bool,
+    /// Ingore letters case flag.
+    #[arg(short, long, default_value_t = false)]
+    ignore_case: bool,
 }
 
-fn read_file(file_path: &path::Path, pattern: &Regex) {
+fn read_file(file_path: &path::Path, pattern: &Regex) -> Result<(), Box<dyn Error>> {
     let path_str = file_path.to_string_lossy();
     let open_file_reader_result = reader::file_reader::FileReader::new(&file_path);
     match open_file_reader_result {
@@ -45,12 +50,26 @@ fn read_file(file_path: &path::Path, pattern: &Regex) {
                 }
             }
         },
-        Err(err) => {
-            debug!("Warning! Cannot open file {path_str}: {err}");
-        }
+        Err(err) => return Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Cannot open file {path_str}: {err}")))),
     }
+    Ok(())
 }
 
+
+fn grep(glob: &String, pattern: &Regex) -> Result<(), Box<dyn Error>> {
+    // Iterate over files according to the glob pattern.
+    let glob_iterator = glob::glob(glob.as_str())?;
+    for glob_entry in glob_iterator {
+        let file_path = glob_entry?;
+        if file_path.is_dir() {
+            continue;
+        }
+
+        read_file(file_path.as_path(), &pattern)?;
+    }
+
+    Ok(())
+}
 
 fn main() {
     // Read cmd args.
@@ -67,19 +86,15 @@ fn main() {
         .start()
         .unwrap();
 
-    // Iterate over files according to the glob pattern.
-    let read_glob_result = glob(args.glob.as_str());
-    match read_glob_result {
-        Ok(glob_iterator) => {
-            for glob_entry in glob_iterator {
-                let file_path = glob_entry.expect("Cannot read glob entry");
-                if file_path.is_dir() {
-                    continue;
-                }
+    // Prepare pattern.
+    let mut pattern = args.pattern;
+    if args.ignore_case {
+        pattern = utils::reg_ex::to_case_insensitive(&pattern);
+    }
 
-                read_file(file_path.as_path(), &args.pattern);
-            }
-        },
-        Err(err) => panic!("Invalid glob: {err}")
+    let grep_result = grep(&args.glob, &pattern);
+    match grep_result {
+        Ok(_) => {},
+        Err(err) => println!("{}", err),
     }
 }
