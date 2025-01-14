@@ -11,10 +11,11 @@ use crate::reader::base::{TextReader, ReadResult};
 pub struct FileReader {
     buffer_reader: io::BufReader<fs::File>,
     line_counter: u32,
+    invert_match: bool,
 }
 
 impl FileReader {
-    pub fn new(path: &path::Path) -> Result<Self, String> {
+    pub fn new(path: &path::Path, invert_match: bool) -> Result<Self, String> {
         let file = match fs::File::open(&path) {
             Ok(file) => file,
             Err(err) => return Err(format!("Cannot open file {path:?}: {err:?}")),
@@ -24,6 +25,7 @@ impl FileReader {
             FileReader{
                 buffer_reader: buffer_reader,
                 line_counter: 0,
+                invert_match: invert_match,
             }
         );
     }
@@ -45,7 +47,7 @@ impl TextReader for FileReader {
                 return utils::types::OptionalResult::None;
             }
 
-            if pattern.is_match(&buffer) {
+            if pattern.is_match(&buffer) != self.invert_match {
                 let line = String::from(buffer.strip_suffix("\n").unwrap_or(&buffer));
                 return utils::types::OptionalResult::Ok(ReadResult{line_content: line, line_number: self.line_counter});
             }

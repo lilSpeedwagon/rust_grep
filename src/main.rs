@@ -25,11 +25,14 @@ struct CliArgs {
     /// Ingore letters case flag.
     #[arg(short, long, default_value_t = false)]
     ignore_case: bool,
+    /// Invert and show unmatched lines.
+    #[arg(short, long, default_value_t = false)]
+    invert_match: bool,
 }
 
-fn read_file(file_path: &path::Path, pattern: &Regex) -> Result<(), Box<dyn Error>> {
+fn read_file(file_path: &path::Path, pattern: &Regex, invert: bool) -> Result<(), Box<dyn Error>> {
     let path_str = file_path.to_string_lossy();
-    let open_file_reader_result = reader::file_reader::FileReader::new(&file_path);
+    let open_file_reader_result = reader::file_reader::FileReader::new(&file_path, invert);
     match open_file_reader_result {
         Ok(mut reader) => {
             loop {
@@ -50,13 +53,14 @@ fn read_file(file_path: &path::Path, pattern: &Regex) -> Result<(), Box<dyn Erro
                 }
             }
         },
-        Err(err) => return Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Cannot open file {path_str}: {err}")))),
+        Err(err) => return Err(Box::new(
+            io::Error::new(io::ErrorKind::Other, format!("Cannot open file {path_str}: {err}"))
+        )),
     }
     Ok(())
 }
 
-
-fn grep(glob: &String, pattern: &Regex) -> Result<(), Box<dyn Error>> {
+fn grep(glob: &String, pattern: &Regex, invert: bool) -> Result<(), Box<dyn Error>> {
     // Iterate over files according to the glob pattern.
     let glob_iterator = glob::glob(glob.as_str())?;
     for glob_entry in glob_iterator {
@@ -65,7 +69,7 @@ fn grep(glob: &String, pattern: &Regex) -> Result<(), Box<dyn Error>> {
             continue;
         }
 
-        read_file(file_path.as_path(), &pattern)?;
+        read_file(file_path.as_path(), &pattern, invert)?;
     }
 
     Ok(())
@@ -92,7 +96,7 @@ fn main() {
         pattern = utils::reg_ex::to_case_insensitive(&pattern);
     }
 
-    let grep_result = grep(&args.glob, &pattern);
+    let grep_result = grep(&args.glob, &pattern, args.invert_match);
     match grep_result {
         Ok(_) => {},
         Err(err) => println!("{}", err),

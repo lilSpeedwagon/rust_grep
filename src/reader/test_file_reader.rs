@@ -19,7 +19,7 @@ mod file_reader_tests {
     fn test_read_empty() {
         let file = create_temp_file("");
 
-        let mut reader = FileReader::new(file.path()).unwrap();
+        let mut reader = FileReader::new(file.path(), false).unwrap();
         let read_result = reader.read_next(&Regex::new(".").unwrap());
 
         assert!(matches!(read_result, OptionalResult::None));
@@ -29,7 +29,7 @@ mod file_reader_tests {
     fn test_read_single_line_match() {
         let file = create_temp_file("Hello, Rust!");
 
-        let mut reader = FileReader::new(file.path()).unwrap();
+        let mut reader = FileReader::new(file.path(), false).unwrap();
         let read_result = reader.read_next(&Regex::new("Rust").unwrap());
 
         assert!(matches!(read_result, OptionalResult::Ok(ReadResult { .. })));
@@ -43,7 +43,7 @@ mod file_reader_tests {
     fn test_read_multiple_matches() {
         let file = create_temp_file("Rust\nIs\nCool");
 
-        let mut reader = FileReader::new(file.path()).unwrap();
+        let mut reader = FileReader::new(file.path(), false).unwrap();
         let regex = Regex::new(".*").unwrap();
 
         // First match
@@ -79,7 +79,7 @@ mod file_reader_tests {
     fn test_read_no_match() {
         let file = create_temp_file("No patterns here!");
 
-        let mut reader = FileReader::new(file.path()).unwrap();
+        let mut reader = FileReader::new(file.path(), false).unwrap();
         let read_result = reader.read_next(&Regex::new("Rust").unwrap());
 
         assert!(matches!(read_result, OptionalResult::None));
@@ -89,7 +89,7 @@ mod file_reader_tests {
     fn test_read_with_special_characters() {
         let file = create_temp_file("Hello, [Rust]!\nSpecial (characters)?");
 
-        let mut reader = FileReader::new(file.path()).unwrap();
+        let mut reader = FileReader::new(file.path(), false).unwrap();
         let regex = Regex::new(r"\[Rust\]").unwrap();
 
         // Match for `[Rust]`
@@ -109,7 +109,7 @@ mod file_reader_tests {
     fn test_read_error_handling() {
         // Non-existent file path.
         let path = path::Path::new("dummy_file.fake.txt");
-        let result = FileReader::new(&path);
+        let result = FileReader::new(&path, false);
 
         assert!(result.is_err());
         if let Err(err) = result {
@@ -121,7 +121,7 @@ mod file_reader_tests {
     fn test_read_partial_matches() {
         let file = create_temp_file("Rust is fun\nRustaceans rule\nLove Rust!");
 
-        let mut reader = FileReader::new(file.path()).unwrap();
+        let mut reader = FileReader::new(file.path(), false).unwrap();
         let regex = Regex::new("Rust").unwrap();
 
         // First match
@@ -138,6 +138,30 @@ mod file_reader_tests {
         if let OptionalResult::Ok(read_result) = result2 {
             assert_eq!(read_result.line_content, "Rustaceans rule");
             assert_eq!(read_result.line_number, 2);
+        }
+    }
+
+    #[test]
+    fn test_inverted_match() {
+        let file = create_temp_file("Hello\nRust\nBye\nRust");
+
+        let mut reader = FileReader::new(file.path(), true).unwrap();
+        let pattern = Regex::new("Rust").unwrap();
+
+        // First unmatch.
+        let read_result = reader.read_next(&pattern);
+        assert!(matches!(read_result, OptionalResult::Ok(ReadResult { .. })));
+        if let OptionalResult::Ok(result) = read_result {
+            assert_eq!(result.line_content, "Hello");
+            assert_eq!(result.line_number, 1);
+        }
+
+        // Second unmatch.
+        let read_result = reader.read_next(&pattern);
+        assert!(matches!(read_result, OptionalResult::Ok(ReadResult { .. })));
+        if let OptionalResult::Ok(result) = read_result {
+            assert_eq!(result.line_content, "Bye");
+            assert_eq!(result.line_number, 3);
         }
     }
 }
