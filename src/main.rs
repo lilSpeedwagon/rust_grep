@@ -1,6 +1,7 @@
 use std::io;
 use std::path;
 use std::error::Error;
+use std::process;
 
 use clap::Parser;
 use regex::Regex;
@@ -20,13 +21,13 @@ struct CliArgs {
     /// The glob pattern for the files to scan.
     glob: String,
     /// Verbose log level flag.
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short = 'V', long, default_value_t = false)]
     verbose: bool,
     /// Ingore letters case flag.
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short = 'i', long, default_value_t = false)]
     ignore_case: bool,
     /// Invert and show unmatched lines.
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short = 'v', long, default_value_t = false)]
     invert_match: bool,
 }
 
@@ -99,6 +100,9 @@ fn main() {
     let grep_result = grep(&args.glob, &pattern, args.invert_match);
     match grep_result {
         Ok(_) => {},
-        Err(err) => println!("{}", err),
+        Err(err) => {
+            eprintln!("{}", err);
+            process::exit(1);
+        },
     }
 }
